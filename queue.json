@@ -1,0 +1,28 @@
+{
+  "sempVersion": "2.32",
+  "msgVpns": [
+    {
+      "msgVpnName": "XXX",
+      "queues": [
+        {
+          "queueName": "XXX",
+          "accessType": "exclusive",
+          "maxMsgSpoolUsage": 5000,
+          "ingressEnabled": true,
+          "egressEnabled": true,
+          "maxBindCount": 10,
+          "owner": "solace-cloud-client",
+          "permission": "consume",
+          "subscriptions": [
+            {
+              "subscriptionTopic": "ecommerce/order/*"
+            },
+            {
+              "subscriptionTopic": "claim/order/*"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
