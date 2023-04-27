@@ -14,12 +14,6 @@
           "owner": "solace-cloud-client",
           "permission": "consume",
           "subscriptions": [
-            {
-              "subscriptionTopic": "ecommerce/order/*"
-            },
-            {
-              "subscriptionTopic": "claim/order/*"
-            }
           ]
         }
       ]
