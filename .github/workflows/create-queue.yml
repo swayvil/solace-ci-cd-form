@@ -1,0 +1,126 @@
+# Create a queue in PubSub+
+name: Create a queue
+
+# Controls when the workflow will run
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      queueName:
+        required: true
+        type: string
+        description: Queue name
+      maxMsgSpoolUsage:
+        required: true
+        type: number
+        default: 5000
+        description: Max message-spool usage
+      accessType:
+        required: true
+        type: choice
+        description: Access type
+        options: 
+        - "exclusive"
+        - "non-exclusive"
+        default: "exclusive"
+      ingressEnabled:
+        required: true
+        type: boolean
+        default: true
+        description: Ingress enabled
+      egressEnabled:
+        required: true
+        type: boolean
+        default: true
+        description: Egress enabled
+      maxBindCount:
+        required: true
+        type: number
+        default: 10
+        description: Max bind count
+      owner:
+        required: true
+        type: string
+        default: "solace-cloud-client"
+        description: Owner
+      permission:
+        required: true
+        type: choice
+        description: Non owner permission
+        options: 
+        - "no-access"
+        - "read-only"
+        - "consume"
+        - "modify-topic"
+        - "delete"
+        default: "no-access"
+      subscriptions:
+        required: false
+        type: string
+        description: Topic subscriptions (separated by a space)
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "createQueue"
+  createQueue:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      - name: Download Solconfig jar
+        run: curl -LJO https://github.com/flyisland/solconfig/releases/download/v1.1.7/solconfig.jar
+
+      - name: Install more-utils
+        run: sudo apt-get install moreutils
+
+      - name: Update Message-VPN in JSON template
+        env:
+          MSG_VPN: ${{ vars.MSG_VPN }}
+        run: jq --arg var "$MSG_VPN" '.msgVpns[0].msgVpnName=$var' queue.json | sponge queue.json
+
+      - name: Update queueName in JSON template
+        run: jq --arg var "${{ inputs.queueName }}" '.msgVpns[0].queues[0].queueName=$var' queue.json | sponge queue.json
+
+      - name: Update maxMsgSpoolUsage in JSON template
+        run: jq --argjson var "${{ inputs.maxMsgSpoolUsage }}" '.msgVpns[0].queues[0].maxMsgSpoolUsage=$var' queue.json | sponge queue.json
+
+      - name: Update accessType in JSON template
+        run: jq --arg var "${{ inputs.accessType }}" '.msgVpns[0].queues[0].accessType=$var' queue.json | sponge queue.json
+
+      - name: Update egressEnabled in JSON template
+        run: jq --argjson var "${{ inputs.egressEnabled }}" '.msgVpns[0].queues[0].egressEnabled=$var' queue.json | sponge queue.json
+
+      - name: Update ingressEnabled in JSON template
+        run: jq --argjson var "${{ inputs.ingressEnabled }}" '.msgVpns[0].queues[0].ingressEnabled=$var' queue.json | sponge queue.json
+
+      - name: Update maxBindCount in JSON template
+        run: jq --argjson var "${{ inputs.maxBindCount }}" '.msgVpns[0].queues[0].maxBindCount=$var' queue.json | sponge queue.json
+
+      - name: Update maxMsgSpoolUsage in JSON template
+        run: jq --argjson var "${{ inputs.maxMsgSpoolUsage }}" '.msgVpns[0].queues[0].maxMsgSpoolUsage=$var' queue.json | sponge queue.json
+
+      - name: Update owner in JSON template
+        run: jq --arg var "${{ inputs.owner }}" '.msgVpns[0].queues[0].owner=$var' queue.json | sponge queue.json
+
+      - name: Update permission in JSON template
+        run: jq --arg var "${{ inputs.permission }}" '.msgVpns[0].queues[0].permission=$var' queue.json | sponge queue.json
+
+      - name: Update topic subscriptions
+        if: (inputs.subscriptions != '')
+        run: |
+          jsonSubscriptions=$(jq -c -n --arg var "${{ inputs.subscriptions }}" '[$var | split(" ")] | transpose | map({ subscriptionTopic:.[0] })')
+          jq --argjson var ${jsonSubscriptions} '.msgVpns[0].queues[0].subscriptions=$var' queue.json | sponge queue.json
+
+      - name: Display queue.json
+        run: cat queue.json
+        
+      - name: Create queue
+        env:
+          SEMP_URL: ${{ vars.SEMP_URL }}
+          SEMP_USER: ${{ vars.SEMP_USER }}
+          SEMP_PWD: ${{ secrets.SEMP_PWD }}
+        run: java -jar solconfig.jar -H=${SEMP_URL} -u=${SEMP_USER} -p=${SEMP_PWD} update --no-delete queue.json
