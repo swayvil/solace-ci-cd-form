@@ -118,17 +118,11 @@ jobs:
       - name: Display queue.json
         run: cat queue.json
         
-      - name: Create queue
+      - name: Create the queue
         env:
           SEMP_URL: ${{ vars.SEMP_URL }}
           SEMP_USER: ${{ vars.SEMP_USER }}
           SEMP_PWD: ${{ secrets.SEMP_PWD }}
         run: java -jar solconfig.jar -H=${SEMP_URL} -u=${SEMP_USER} -p=${SEMP_PWD} update --no-delete queue.json
-        
-      - name: Git commit and push
-        run: |
-          git config --global user.name "${{ env.GITHUB_ACTOR }}"
-          git add queue.json
-          git commit -m "Add queue-${{ inputs.queueName }}.json"
-          git push
+
 
