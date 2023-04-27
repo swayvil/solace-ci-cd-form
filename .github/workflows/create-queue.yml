@@ -80,7 +80,7 @@ jobs:
       - name: Update Message-VPN in JSON template
         env:
           MSG_VPN: ${{ vars.MSG_VPN }}
-        run: jq --arg var "$MSG_VPN" '.msgVpns[0].msgVpnName=$var' queue.json | sponge queue.json
+        run: jq --arg var "$MSG_VPN" '.msgVpns[0].msgVpnName=$var' template/queue.json | sponge queue.json
 
       - name: Update queueName in JSON template
         run: jq --arg var "${{ inputs.queueName }}" '.msgVpns[0].queues[0].queueName=$var' queue.json | sponge queue.json
@@ -124,3 +124,11 @@ jobs:
           SEMP_USER: ${{ vars.SEMP_USER }}
           SEMP_PWD: ${{ secrets.SEMP_PWD }}
         run: java -jar solconfig.jar -H=${SEMP_URL} -u=${SEMP_USER} -p=${SEMP_PWD} update --no-delete queue.json
+        
+      - name: Git commit and push
+        run: |
+          git config --global user.name "${{ env.GITHUB_ACTOR }}"
+          git add queue.json
+          git commit -m "Add queue-${{ inputs.queueName }}.json"
+          git push
+
